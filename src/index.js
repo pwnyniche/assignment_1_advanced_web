@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
+const boardSize = 10 ;
+const winSize = 5;
+
 function Square({value, onClick, inWinLine})
 {
         return (
@@ -24,14 +27,13 @@ class Board extends React.Component {
     }
 
     render() {
-        const boardSize = 3;
         let board = [];
         for (let i = 0; i < boardSize; i++)
         {
             let row = [];
             for (let j = 0; j < boardSize; j++)
             {
-                row.push(this.renderSquare(i*3+j));
+                row.push(this.renderSquare(i*boardSize+j));
             }
             board.push(<div key={i} className="board-row">{row}</div>);
         }
@@ -49,7 +51,7 @@ class Game extends React.Component {
         super(props);
         this.state = {
             history: [{
-                squares: Array(9).fill(null),
+                squares: Array(boardSize*boardSize).fill(null),
                 moveIndex: null,
             }],
             stepNumber: 0,
@@ -96,8 +98,8 @@ class Game extends React.Component {
         const winner = calculateWinner(current.squares).winner;
         const winLine =  calculateWinner(current.squares).winLine;
         const moves = history.map((step, move) => {
-            const rowDesc = 1 + step.moveIndex % 3;
-            const colDesc = 1 + Math.floor(step.moveIndex / 3);
+            const rowDesc = 1 + step.moveIndex % boardSize;
+            const colDesc = 1 + Math.floor(step.moveIndex / boardSize);
             const playerDesc = (move % 2 === 1) ? 'X' : 'O';
             const desc = move ?
                 'Move ' + move + ': ' + playerDesc + ' plays (' + rowDesc + ',' + colDesc + ')' :
@@ -117,7 +119,7 @@ class Game extends React.Component {
         let status;
         if (winner) {
             status = 'Winner: ' + winner;
-        } else if (this.state.stepNumber === 9) {
+        } else if (this.state.stepNumber === boardSize*boardSize) {
             status = 'Draw';
         }
         else
@@ -154,24 +156,55 @@ ReactDOM.render(
 );
 
 function calculateWinner(squares) {
-    const lines = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6],
-    ];
-    for (let i = 0; i < lines.length; i++) {
-        const [a, b, c] = lines[i];
-        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return {
-                winner: squares[a],
-                winLine: lines[i],
-            };
+    const lines = [];
+    for (let i = 0; i < boardSize*boardSize; i++) {
+        let winConRow = [];
+        let winConColumn = [];
+        let winConDiagon1 = [];
+        let winConDiagon2 = [];
+        if (i+winSize-1 < boardSize*(Math.floor(i/boardSize)+1)) {
+            for (let j=0; j < winSize; j++) {
+                winConRow.push(i + j);
+            }
+            lines.push(winConRow);
+        }
+        if (i+boardSize*(winSize-1) < boardSize*boardSize) {
+            for (let j=0; j < winSize; j++) {
+                winConColumn.push(i + boardSize * j);
+            }
+            lines.push(winConColumn);
+        }
+        if ((boardSize - (i % boardSize))>= winSize && (boardSize - Math.floor(i / boardSize))>= winSize) {
+            for (let j=0; j < winSize; j++) {
+                winConDiagon1.push(i + boardSize * j + j);
+            }
+            lines.push(winConDiagon1);
+        }
+        if ((i % boardSize + 1 ) >= winSize && (boardSize - Math.floor(i / boardSize))>= winSize) {
+            for (let j=0; j < winSize; j++) {
+                winConDiagon2.push(i + boardSize * j - j);
+            }
+            lines.push(winConDiagon2);
         }
     }
-    return {winner: null};
+
+    for (let i = 0; i < lines.length; i++) {
+        let check = squares[lines[i][0]];
+        for (let j=1;j<lines[i].length; j++)
+        {
+            if (check !== squares[lines[i][j]])
+            {
+                check = null;
+                break;
+            }
+        }
+        if (check)
+        return {
+            winner: check,
+            winLine: lines[i],
+        };
+    }
+    return {
+        winner: null,
+    };
 }
